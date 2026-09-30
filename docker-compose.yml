@@ -1,0 +1,135 @@
+services:
+
+  # --- Сервис для вашего основного бэкенда (API) ---
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile     # Указывает Docker Compose собрать образ для этого сервиса из Dockerfile, расположенного в папке './backend'.
+    restart: unless-stopped         # Контейнер будет автоматически перезапускаться.
+    environment:          # Переменные окружения для вашего бэкенда
+      BOT_TOKEN: ${BOT_TOKEN}
+      CLASSIFIER_URL: http://classifier:8001/predict # Адрес для обращения к ИИ-модулю 1 (внутри Docker сети)
+      # DISEASE_URL: http://disease:8002/predict # Адрес для обращения к ИИ-модулю 2
+      # UTILS_URL: http://utils:8003/calculate # Адрес для обращения к другим алгоритмам
+      DATABASE_URL: sqlite:////app/data/plantastic_db.db # Путь к БД
+      CORS_ORIGINS: https://plantastic.space
+      LOG_LEVEL: INFO
+      LOG_FILE: /app/logs/app.log
+      DB_ECHO: "false"
+    ports:                # Порты контейнера, которые будут доступны на хост-машине.
+      - "8000:8000"       # "Порт_на_хосте:Порт_в_контейнере". Nginx будет проксировать запросы к порту 8000 на хосте.
+    depends_on:           # Указывает зависимость от БД. Бэкенд запустится только после того, как БД будет готова.
+      classifier:
+        condition: service_healthy
+      # - disease
+      # - utils
+    volumes: # Добавляем монтирование тома для сохранения данных БД
+      - ./backend:/app/backend
+      - db_data:/app/data   # Монтируем 'database' в папку '/app/data' внутри контейнера.
+      - ./logs:/app/logs
+      # - ./backend/main.py:/app/backend/main.py
+      # - ./backend/database.py:/app/backend/database.py
+      # - ./backend/models.py:/app/backend/models.py
+      # - ./backend/schemas.py:/app/backend/schemas.py
+      
+    networks:
+      - app_network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # --- Сервис для ИИ-модуля 1 (распознавание сорта) ---
+  classifier:
+    container_name: classifier
+    build:
+      context: ./classifier
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    ports:
+     - "8001:8001"
+
+    volumes: # Добавляем монтирование тома
+      - ./classifier/classifier:/app/classifier
+
+    networks:
+      - app_network
+    environment:
+      CORS_ORIGINS: https://plantastic.space
+    # Если модель требует больших файлов, которые не должны быть частью образа, можно использовать volume:
+    # volumes:
+    #   - ./ai_model_1/weights:/app/weights # Пример: папка 'weights' на хосте монтируется в '/app/weights' внутри контейнера.
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/classifier/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # ML-модели дольше загружаются
+
+  # --- Сервис для ИИ-модуля 2 (определение заболевания) ---
+  disease:
+    container_name: disease
+    build:
+      context: ./disease #НОВОЕ!
+      dockerfile: Dockerfile #НОВОЕ!
+    restart: unless-stopped
+
+    ports:
+      - "8002:8002"
+
+    volumes: # Добавляем монтирование тома #НОВОЕ!
+      - .disease/disease_app:/app/disease/disease_app #НОВОЕ!
+      - .disease/models:/app/disease/models #НОВОЕ!
+
+    networks:
+      - app_network
+
+    #НОВОЕ! - начало
+    environment:
+      CORS_ORIGINS: https://plantastic.space
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/disease/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # ML-модели дольше загружаются
+    #НОВОЕ! - конец
+
+
+  # --- Сервис для других Python-алгоритмов ---
+  # utils:
+  #   build: ./utils
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8003:8003"
+  #   networks:
+  #     - app_network
+
+
+# --- Объявления томов ---
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./database  # Создайте эту папку заранее
+
+
+# --- Объявления сетей ---
+networks:
+  app_network: # Общая сеть для всех сервисов. Позволяет им общаться друг с другом по именам сервисов (например, 'backend' может обратиться к 'db' по имени 'db').
+    driver: bridge # Тип сети. 'bridge' - стандартный для большинства случаев.
+
+
+# #НОВОЕ!
+# x-cleanup: &cleanup
+#   restart: "no"
+#   command: sh -c "docker system prune -f"

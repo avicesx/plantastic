@@ -1,0 +1,22 @@
+﻿class_id;class_label;disease_id
+1;Agrobacterium tumefaciens ;1
+2;Anthracnose ;2
+3;Bacterial Leaf Spot ;3
+4;Bacterial Soft Rot ;4
+5;Botrytis cinerea ;5
+6;Bud Rot ;7
+7;Chlorosis ;8
+8;Edema ;10
+9;Erysiphales ;11
+10;Fusarium ;12
+11;Leaf Curl ;13
+12;Mosaic Virus ;18
+13;Peronospora ;19
+14;Phoma ;20
+15;Phytophthora ;21
+16;Pucciniales ;22
+17;Pythium ;23
+18;Ralstonia solanacearum ;24
+19;Sooty mold ;27
+20;White plaque on the soil ;28
+21;healthy;30

@@ -1,0 +1,48 @@
+# Окружение и секреты
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+Lib/
+Scripts/
+Include/
+pyvenv.cfg
+share/
+
+# Редакторы и ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Тесты и кэш
+.pytest_cache/
+.coverage
+htmlcov/
+classifier/tests/ram_test.py
+classifier/tests/test_images/*
+!classifier/tests/test_images/.gitkeep
+
+# Логи
+*.log
+logs/
+
+# Веса моделей, списки классов
+*.pth
+!**/class_names.txt
+
+# Базы данных
+*.db
+*.sqlite3
+
+# Временные файлы
+*_temp*
+.tmp_check/
+
+# Node / сборка фронтенда
+node_modules/

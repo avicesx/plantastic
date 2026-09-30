@@ -1,0 +1,134 @@
+users:
+
+user_id			Integer		Уникальный ID пользователя из Telegram.				PRIMARY KEY, index=True
+first_name		String		Имя пользователя в Telegram.					nullable=True
+username		String		Юзернейм пользователя в Telegram.				unique=True, nullable=True
+registration_date	Date		Дата регистрации пользователя в вашем приложении.		default=Date.today
+last_activity_date	Date		Дата последней активности пользователя в приложении.		nullable=True
+timezone		String		Часовой пояс пользователя.					nullable=True
+settings_json		JSON		JSON-объект для хранения индивидуальных настроек пользователя.	nullable=True
+
+
+plants:
+
+plant_id		Integer		Уникальный идентификатор вида растения.					PRIMARY KEY
+scientific_name		String		Научное латинское название растения.					unique=True, nullable=False, index=True
+common_name_ru		String		Основное общепринятое русское название.					nullable=False, index=True
+synonyms		String		Синонимы названия.							nullable=True
+family			String		Ботаническое семейство.							nullable=True, index=True
+genus			String		Ботанический род.							nullable=True, index=True
+description		Text		Подробное описание растения.						nullable=True
+max_height_cm		Integer		Максимальная высота взрослого растения в сантиметрах.			nullable=True
+growth_rate		String		Скорость роста.								nullable=True
+light_requirements	String		Требования к освещению.							nullable=True
+temperature_range	String		Диапазон температур.							nullable=True
+humidity_requirements	String		Требования к влажности воздуха.						nullable=True
+watering_coefficient	Float		Коэффициент потребности во влаге (0.0-1.0), для расчётов полива.	nullable=False
+soil_requirements	String		Требования к почве.							nullable=True
+repotting_frequency	String		Частота пересадки.							nullable=True
+propagation_methods	Text		Способы размножения.							nullable=True
+toxicity		String		Информация о токсичности.						nullable=True
+care_features		Text		Особенности ухода.							nullable=True
+
+
+plant_images:
+
+image_id		Integer		Уникальный ID изображения.								PRIMARY KEY
+plant_id		Integer		Внешний ключ к plants.plant_id. Вид растения, к которому относится изображение.		ForeignKey('plants.plant_id'), nullable=False, index=True
+image_url		String		Ссылка на изображение.									nullable=False
+description		String		Краткое описание изображения (например, "Цветок", "Лист", "Растение целиком").		nullable=True
+is_main_image		Boolean		Флаг, указывающий, является ли это изображение основным.				default=False
+source_url		String		Ссылка на источник изображения (для атрибуции).						nullable=True
+
+
+disease:
+
+disease_id		Integer		Уникальный идентификатор заболевания.			PRIMARY KEY
+disease_name_ru		String		Общепринятое русское название заболевания.		nullable=False
+disease_name_en		String		Общепринятое английское название.			nullable=True
+description		Text		Подробное описание заболевания.				nullable=True
+symptoms		Text		Описание симптомов.					nullable=True
+treatment		Text		Рекомендации по лечению.				nullable=True
+prevention		Text		Меры профилактики.					nullable=True
+
+
+disease_images:
+
+image_id	Integer		Уникальный ID изображения.								PRIMARY KEY
+disease_id	Integer		Внешний ключ к diseases.disease_id. Заболевание, к которому относится изображение.	ForeignKey('diseases.disease_id'), nullable=False, index=True
+image_url	String		Ссылка на изображение.									nullable=False
+description	String		Краткое описание изображения (например, "Симптомы на листьях", "Общий вид поражения").	nullable=True
+is_main_image	Boolean		Флаг, указывающий, является ли это изображение основным.				default=False
+source_url	String		Ссылка на источник изображения (для атрибуции).						nullable=True
+
+
+symptoms:
+
+symptom_id		Integer		Уникальный ID симптома.							PRIMARY KEY
+symptom_name_ru		String		Название симптома на русском (из первого столбца вашей таблицы).	unique=True, nullable=False, index=True
+question		Text		Вопрос для пользователя на русском языке (из второго файла).		nullable=False
+symptom_name_en		String		Название симптома на английском (если понадобится).			nullable=True
+
+
+disease_symptoms:
+
+disease_symptom_id	Integer		Уникальный ID записи о связи.					PRIMARY KEY
+disease_id		Integer		Внешний ключ к diseases.disease_id. Заболевание.		ForeignKey('diseases.disease_id'), nullable=False, index=True
+symptom_id		Integer		Внешний ключ к symptoms.symptom_id. Симптом.			ForeignKey('symptoms.symptom_id'), nullable=False, index=True
+is_characteristic	Boolean		"ИСТИНА"/"ЛОЖЬ" из вашей матрицы.				nullable=False
+
+
+plant_nn_classes:
+
+class_id		Integer		Уникальный идентификатор класса нейросети для растения.		PRIMARY KEY
+class_label		String		Конкретный класс (строка), выдаваемый нейросетью.		nullable=False, unique=True, index=True
+plant_id		Integer		Внешний ключ к plants.plant_id. Связанное растение.		ForeignKey('plants.plant_id'), nullable=False, index=True
+
+
+disease_nn_classes:
+
+class_id		Integer		Уникальный идентификатор класса нейросети для заболевания.	PRIMARY KEY
+class_label		String		Конкретный класс (строка), выдаваемый нейросетью.		nullable=False, unique=True, index=True
+disease_id		Integer		Внешний ключ к diseases.disease_id. Связанное заболевание.	ForeignKey('diseases.disease_id'), nullable=False, index=True
+
+
+user_plants:
+
+user_plant_id		Integer		Уникальный ID конкретного растения пользователя.		PRIMARY KEY
+user_id			Integer		Внешний ключ к users.user_id. Владелец этого растения.		ForeignKey('users.user_id'), nullable=False, index=True
+plant_id		Integer		Внешний ключ к plants.plant_id. Вид растения из справочника.	ForeignKey('plants.plant_id'), nullable=False
+nickname		String		Имя, которое пользователь дал своему растению.			nullable=True
+acquisition_date	Date		Дата приобретения растения пользователем.			nullable=True
+last_watering_date	Date		Дата последнего полива.						nullable=True
+notes			Text		Личные заметки пользователя об этом растении.			nullable=True
+
+
+user_plant_images:
+
+image_id		Integer		Уникальный ID изображения.									PRIMARY KEY
+user_plant_id		Integer		Внешний ключ к user_plants.user_plant_id. Растение, к которому относится изображение.		ForeignKey('user_plants.user_plant_id'), nullable=False, index=True
+image_url		String		Ссылка на изображение.										nullable=False
+upload_date		Date		Дата загрузки изображения.									default=Date.today
+description		String		Небольшое описание изображения (например, "Цветение", "Проблема с листом").			nullable=True
+is_main_image		Boolean		Флаг, указывающий, является ли это изображение основным (для отображения в списке растений).	default=False
+
+
+tasks:
+
+id			Integer		Уникальный ID конкретной задачи.								PRIMARY KEY, index=True
+user_plant_id		Integer		Внешний ключ к user_plants.user_plant_id. Растение, к которому относится задача.		ForeignKey('user_plants.user_plant_id'), nullable=False, index=True	
+date			Date		Дата, на которую запланирована задача.								index=True
+task_type		Integer		Тип задачи (например, "Полив", "Удобрение", "Пересадка", "Обработка", "Обрезка").		nullable=False, index=True
+text			String		Описание задачи.										nullable=False
+is_completed		Boolean		Флаг, указывающий, выполнена ли задача.								default=False
+completion_date		Date		Дата фактического выполнения задачи (если is_completed=True).					nullable=True
+recurrence		String		Тип повторяемости задачи (например, "еженедельно", "раз в 2 недели", "ежемесячно", "один раз").	nullable=True
+start_date		Date		Дата начала повторяющейся задачи.								nullable=True
+end_date		Date		Дата окончания повторяющейся задачи.								nullable=True
+
+
+task_types:
+
+task_type_id		Integer		Уникальный ID типа задачи.									PRIMARY KEY
+name_ru			String		Название типа задачи на русском (например, "Полив").						unique=True, nullable=False, index=True
+
