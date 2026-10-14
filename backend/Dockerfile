@@ -6,16 +6,6 @@ FROM python:3.13-slim-bookworm AS builder
 # Например, если у вас есть библиотеки, которым нужны компиляторы (например, psycopg2).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libjpeg-dev \
-    libpng-dev \
-    zlib1g-dev \
-    libfreetype6-dev \
-    liblcms2-dev \
-    libwebp-dev \
-    libheif-dev \
-    libde265-dev \
-    libx265-dev \
-    # Добавьте другие нужные пакеты \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка рабочей директории внутри образа
@@ -29,7 +19,6 @@ COPY requirements.txt .
 # --no-cache-dir для уменьшения размера образа.
 # -r requirements.txt для установки зависимостей из файла.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
 # Копируем остальной код приложения.
@@ -49,11 +38,6 @@ RUN groupadd -g 1002 developers && \
 # Установка только необходимых runtime зависимостей
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libjpeg62-turbo \
-    libpng16-16 \
-    libwebp7 \
-    libfreetype6 \
-    liblcms2-2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка рабочей директории
