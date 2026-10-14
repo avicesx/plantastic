@@ -9,26 +9,16 @@ services:
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       RECOGNITION_URL: http://recognition:8003
-      DATABASE_URL: sqlite:////app/data/plantastic_db.db # Путь к БД
-      CORS_ORIGINS: https://plantastic.space
-      LOG_LEVEL: INFO
-      LOG_FILE: /app/logs/app.log
       DB_ECHO: "false"
-    ports:                # Порты контейнера, которые будут доступны на хост-машине.
-      - "8000:8000"       # "Порт_на_хосте:Порт_в_контейнере". Nginx будет проксировать запросы к порту 8000 на хосте.
-    depends_on:           # Указывает зависимость от БД. Бэкенд запустится только после того, как БД будет готова.
+    ports:
+      - "8000:8000"
+    depends_on:
       recognition:
         condition: service_healthy
-      # - utils
-    volumes: # Добавляем монтирование тома для сохранения данных БД
-      - ./backend:/app/backend
-      - db_data:/app/data   # Монтируем 'database' в папку '/app/data' внутри контейнера.
+    volumes:
+      - db_data:/app/data
       - ./logs:/app/logs
-      # - ./backend/main.py:/app/backend/main.py
-      # - ./backend/database.py:/app/backend/database.py
-      # - ./backend/models.py:/app/backend/models.py
-      # - ./backend/schemas.py:/app/backend/schemas.py
-      
+
     networks:
       - app_network
 
@@ -63,34 +53,14 @@ services:
       retries: 3
       start_period: 90s
 
-
-  # --- Сервис для других Python-алгоритмов ---
-  # utils:
-  #   build: ./utils
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8003:8003"
-  #   networks:
-  #     - app_network
-
-
-# --- Объявления томов ---
 volumes:
   db_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./database  # Создайте эту папку заранее
+      device: ./database
 
-
-# --- Объявления сетей ---
 networks:
-  app_network: # Общая сеть для всех сервисов. Позволяет им общаться друг с другом по именам сервисов (например, 'backend' может обратиться к 'db' по имени 'db').
-    driver: bridge # Тип сети. 'bridge' - стандартный для большинства случаев.
-
-
-# #НОВОЕ!
-# x-cleanup: &cleanup
-#   restart: "no"
-#   command: sh -c "docker system prune -f"
+  app_network:
+    driver: bridge
