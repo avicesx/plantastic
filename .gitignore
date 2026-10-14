@@ -24,9 +24,6 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-classifier/tests/ram_test.py
-classifier/tests/test_images/*
-!classifier/tests/test_images/.gitkeep
 
 # Логи
 *.log
@@ -46,3 +43,11 @@ logs/
 
 # Node / сборка фронтенда
 node_modules/
+
+#  database
+database/*
+!database/.gitkeep
+
+# фото для тестов
+tests/images/*
+!tests/images/.gitkeep

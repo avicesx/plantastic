@@ -1,0 +1,10 @@
+# Веб-сервис
+fastapi==0.115.12
+uvicorn==0.34.3
+python-multipart==0.0.20
+pydantic==2.11.5
+
+# Работа с изображениями
+Pillow==11.2.1
+pillow-heif==0.22.0
+numpy==2.2.6

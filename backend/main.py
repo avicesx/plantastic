@@ -17,18 +17,20 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select, func, or_
 from datetime import date, timedelta
 from typing import List, Dict, Optional, Any
-import requests
 import os
 from contextlib import asynccontextmanager
 import hashlib
 import re
 
-from plant_detector.plant_detector import PlantDetector
+from recognition import (
+    STATUS_NOT_PLANT, RecognitionFailed, RecognitionGateway, RecognitionResult,
+    RecognitionUnavailable, create_gateway,
+)
 from models import Task, UserPlant, Base, SoilType, Plant, PlantNNClass, TaskType, PlantImage
 from schemas import (MessageResponse, UserOut, TelegramInitData, AuthResponse, 
                      PlantOut, DiseaseWithSymptoms, TaskCreate, TaskUpdate, 
                      TaskOut, HealthResponse, PredictItem, IdentifyResponse, 
-                     RawClassifierResponse, IdentifyResponse, TaskList, UserPlantOut,
+                     IdentifyResponse, TaskList, UserPlantOut,
                      UserPlantCreate, UserPlantWithDetails, UserPlantUpdate, 
                      SoilTypeOut, PlantOutForSearch, VarietyOutForSearch, TaskTypeOut,
                      GenusWateringCoefficient, TasksByDate
@@ -61,7 +63,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 telegram_validator: TelegramDataValidator = None
-plant_detector = PlantDetector()
 security = HTTPBearer()
 
 # Функция для создания базы данных и таблиц
@@ -84,8 +85,10 @@ async def lifespan(app: FastAPI):
     telegram_validator = TelegramDataValidator(BOT_TOKEN)
 
     await create_db_and_tables()
+    app.state.recognition = create_gateway()
     logger.info("FastAPI приложение запущено и готово к работе.")
     yield
+    await app.state.recognition.aclose()
     logger.info("FastAPI приложение завершает работу.")
 
 
@@ -627,79 +630,85 @@ async def get_variety_search(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Внутренняя ошибка сервера.")
 
 
+def get_recognition(request: Request) -> RecognitionGateway:
+    """Dependency: переключатель к распознаванию, созданный при старте приложения"""
+    return request.app.state.recognition
+
+
+def recognition_http_error(error: Exception, what: str) -> HTTPException:
+    """Переводит ошибку распознавания в HTTP-ответ клиенту"""
+    if isinstance(error, RecognitionUnavailable):
+        logger.error(f"Сервис {what} недоступен: {error}", exc_info=True)
+        return HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Сервис {what} недоступен",
+        )
+    logger.error(f"Ошибка из сервиса {what}: {error}", exc_info=True)
+    return HTTPException(
+        status_code=error.status_code,
+        detail=f"Ошибка из сервиса {what}: {error.detail}",
+    )
+
+
+async def build_identify_response(
+    db: AsyncSession,
+    result: RecognitionResult,
+    resolver,
+    unknown_template: str,
+) -> IdentifyResponse:
+    """Превращает метки нейросети в карточки справочника (растения или болезни)
+
+    resolver - функция из database.py, которая по списку меток возвращает
+    {метка: {"item_id", "item_name", "images"}}
+    """
+    if result.status == STATUS_NOT_PLANT:
+        return IdentifyResponse(status="not plant", data=[], total=0)
+
+    labels = [prediction.label for prediction in result.predictions]
+    # Один запрос к БД на все метки. None означает ошибку БД.
+    info_map = await resolver(db, labels) if labels else {}
+    if info_map is None:
+        raise RuntimeError("Не удалось получить информацию о предсказанных классах из БД")
+
+    processed: List[PredictItem] = []
+    for prediction in result.predictions:
+        confidence = round(prediction.confidence * 100, 2)  # в проценты
+        info = info_map.get(prediction.label)
+        if info:
+            processed.append(PredictItem(
+                item_id=info["item_id"],
+                item_name=info["item_name"],
+                confidence=confidence,
+                images=info.get("images", []),
+            ))
+        else:
+            logger.warning(f"В справочнике нет записи для метки: {prediction.label}")
+            processed.append(PredictItem(
+                item_id=0,
+                item_name=unknown_template.format(prediction.label),
+                confidence=confidence,
+                images=[],
+            ))
+    return IdentifyResponse(status="ok", data=processed, total=len(processed))
+
+
 @app.post("/identify_plant", response_model=IdentifyResponse,  summary="Идентификация растения по изображению")
 @limiter.limit("10/minute")
 async def identify_plant(
     request: Request,
-    file: UploadFile = File(...), 
-    db: AsyncSession = Depends(get_async_db)
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_async_db),
+    recognition: RecognitionGateway = Depends(get_recognition),
 ):
-    
     try:
         contents = await file.read()
-
-        if not plant_detector.predict(contents):
-            logger.info("На поступившем изображении не обнаружено растение")
-            return IdentifyResponse(
-                                    status="not plant",
-                                    data=[],
-                                    total=0
-                                )
-        
-        classifier_response = requests.post("http://classifier:8001/classifier/classify",
-                                files={"file": (file.filename, contents, file.content_type)},
-                                timeout=7)
-        classifier_response.raise_for_status() # Вызывает HTTPError для плохих ответов (4xx или 5xx)
-        raw_classifier_data = RawClassifierResponse.model_validate(classifier_response.json())
-
-        # Собираем все class_label из предсказаний для одного запроса к БД
-        class_labels_to_fetch = [pred.class_name for pred in raw_classifier_data.data.predictions]
-
-        # Выполняем ОДИН асинхронный запрос к базе данных (Если список пуст, функция вернет пустой словарь)
-        plants_full_info_map = await get_plant_from_db_by_nn(db, class_labels_to_fetch)
-
-        processed_predictions: List[PredictItem] = []
-        for raw_pred in raw_classifier_data.data.predictions:
-            class_name = raw_pred.class_name
-            confidence = round(raw_pred.confidence * 100, 2) # Переводим в проценты
-            
-            plant_info = plants_full_info_map.get(class_name)
-            
-            if plant_info:
-                    processed_predictions.append(
-                        PredictItem(
-                            item_id=plant_info["item_id"],
-                            item_name=plant_info["item_name"],
-                            confidence=confidence,
-                            images=plant_info.get("images", []) # Передаем полученные изображения
-                        )
-                    )
-            else:
-                logger.warning(f"Не найдено растения для класса: {class_name}. Добавлено как 'Неизвестное растение ...'")
-                processed_predictions.append(
-                    PredictItem(
-                        item_id=0,
-                        item_name=f"Неизвестное растение, класс: {class_name}",
-                        confidence=confidence,
-                        images=[]
-                    )
-                )
-
-        # Формируем и возвращаем окончательный ответ
-        response_data_object = IdentifyResponse(
-                                    status="ok",
-                                    data=processed_predictions,
-                                    total=len(processed_predictions),
-                                )
-        return response_data_object
-
-    except requests.exceptions.ConnectionError:
-        logger.error("Сервис классификации растений недоступен..", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис классификации расстений недоступен.")
-    except requests.exceptions.RequestException as e:
-        status_code = classifier_response.status_code if 'classifier_response' in locals() else 500
-        logger.error(f"Ошибка из сервиса классификации расстений: {e}. Response: {classifier_response.text if 'classifier_response' in locals() else 'N/A'}", exc_info=True)
-        raise HTTPException(status_code=status_code, detail=f"Ошибка из сервиса классификации расстений: {e}. Response: {classifier_response.text if 'classifier_response' in locals() else 'N/A'}")
+        result = await recognition.recognize_plant(contents, file.filename, file.content_type)
+        return await build_identify_response(
+            db, result, get_plant_from_db_by_nn,
+            unknown_template="Неизвестное растение, класс: {}",
+        )
+    except (RecognitionUnavailable, RecognitionFailed) as e:
+        raise recognition_http_error(e, "классификации растений")
     except Exception as e:
         logger.error(f"Произошла непредвиденная ошибка в сервисе распознавания растений: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Произошла непредвиденная ошибка: {e}")
@@ -731,72 +740,19 @@ async def get_disease_details(
 @limiter.limit("10/minute")
 async def identify_disease(
     request: Request,
-    file: UploadFile = File(...), 
-    db: AsyncSession = Depends(get_async_db)
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_async_db),
+    recognition: RecognitionGateway = Depends(get_recognition),
 ):
     try:
         contents = await file.read()
-        if not plant_detector.predict(contents):
-            logger.info("На поступившем изображении не обнаружено растение")
-            return IdentifyResponse(
-                                    status="not plant",
-                                    data=[],
-                                    total=0
-                                )
-
-        disease_response = requests.post("http://disease:8002/disease/predict",
-                                files={"file": (file.filename, contents, file.content_type)},
-                                timeout=7)
-        disease_response.raise_for_status() # Вызывает HTTPError для плохих ответов (4xx или 5xx)
-        raw_disease_data = RawClassifierResponse.model_validate(disease_response.json())
-
-        # Собираем все class_label из предсказаний для одного запроса к БД
-        class_labels_to_fetch = [pred.class_name for pred in raw_disease_data.data.predictions]
-
-        # Выполняем ОДИН асинхронный запрос к базе данных. Если список пуст, функция вернет пустой словарь)
-        diseases_full_info_map = await get_diseases_from_db_by_nn(db, class_labels_to_fetch)
-
-        processed_predictions: List[PredictItem] = []
-        for raw_pred in raw_disease_data.data.predictions:
-            class_name = raw_pred.class_name
-            confidence = round(raw_pred.confidence * 100, 2)
-            
-            disease_info = diseases_full_info_map.get(class_name)
-            
-            if disease_info:
-                    processed_predictions.append(
-                        PredictItem(
-                            item_id=disease_info["item_id"],
-                            item_name=disease_info["item_name"],
-                            confidence=confidence,
-                            images=disease_info.get("images", [])
-                        )
-                    )
-            else:
-                logger.warning(f"Не найдено заболевания для метки: {class_name}. Добавлено как 'Неизвестное заболевание ...'.")
-                processed_predictions.append(
-                    PredictItem(
-                        item_id=0,
-                        item_name=f"Неизвестное заболевание, метка: {class_name}",
-                        confidence=confidence,
-                        images=[]
-                    )
-                )
-            
-        response_data_object = IdentifyResponse(
-                                    status="ok",
-                                    data=processed_predictions,
-                                    total=len(processed_predictions),
-                                )
-        return response_data_object
-
-    except requests.exceptions.ConnectionError:
-        logger.error("Сервис классификации заболеваний недоступен..", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис классификации заболеваний недоступен.")
-    except requests.exceptions.RequestException as e:
-        status_code = disease_response.status_code if 'disease_response' in locals() else 500
-        logger.error(f"Ошибка из сервиса классификации заболеваний: {e}. Response: {disease_response.text if 'disease_response' in locals() else 'N/A'}", exc_info=True)
-        raise HTTPException(status_code=status_code, detail=f"Ошибка из сервиса классификации заболеваний: {e}. Response: {disease_response.text if 'disease_response' in locals() else 'N/A'}")
+        result = await recognition.recognize_disease(contents, file.filename, file.content_type)
+        return await build_identify_response(
+            db, result, get_diseases_from_db_by_nn,
+            unknown_template="Неизвестное заболевание, метка: {}",
+        )
+    except (RecognitionUnavailable, RecognitionFailed) as e:
+        raise recognition_http_error(e, "классификации заболеваний")
     except Exception as e:
         logger.error(f"В файле identify_disease произошла непредвиденная ошибка: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Произошла непредвиденная ошибка: {e}")

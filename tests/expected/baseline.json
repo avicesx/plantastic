@@ -1,0 +1,410 @@
+{
+  "notplant_01.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 25.5,
+          "item_id": 2,
+          "item_name": " Антракноз"
+        },
+        {
+          "confidence": 15.29,
+          "item_id": 10,
+          "item_name": " Фузариоз "
+        },
+        {
+          "confidence": 13.65,
+          "item_id": 3,
+          "item_name": " Бактериальная пятнистость "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 22.13,
+          "item_id": 135,
+          "item_name": "Филодендрон Лемон Лайм"
+        },
+        {
+          "confidence": 21.71,
+          "item_id": 127,
+          "item_name": "Пеперомия полиботрия Рэйндроп"
+        },
+        {
+          "confidence": 11.17,
+          "item_id": 138,
+          "item_name": "Филодендрон Черное золото"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "notplant_02.jpg": {
+    "identify_disease": {
+      "data": [],
+      "status": "not plant",
+      "total": 0
+    },
+    "identify_plant": {
+      "data": [],
+      "status": "not plant",
+      "total": 0
+    }
+  },
+  "plant_01.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 47.04,
+          "item_id": 18,
+          "item_name": " Ралстония (Бактериальное увядание) "
+        },
+        {
+          "confidence": 32.44,
+          "item_id": 1,
+          "item_name": " Бактериальный рак "
+        },
+        {
+          "confidence": 4.96,
+          "item_id": 20,
+          "item_name": " Белый налёт на почве "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 96.48,
+          "item_id": 121,
+          "item_name": "Мирт обыкновенный Микрофилла"
+        },
+        {
+          "confidence": 1.21,
+          "item_id": 82,
+          "item_name": "Фикус Религиоза"
+        },
+        {
+          "confidence": 0.46,
+          "item_id": 69,
+          "item_name": "Фикус Бенджамина Наташа"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_02.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 69.25,
+          "item_id": 7,
+          "item_name": " Хлороз "
+        },
+        {
+          "confidence": 12.69,
+          "item_id": 11,
+          "item_name": " Скручивание листьев "
+        },
+        {
+          "confidence": 5.04,
+          "item_id": 6,
+          "item_name": " Гниль бутонов "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 71.21,
+          "item_id": 85,
+          "item_name": "Граптопеталум парагвайский Призрак"
+        },
+        {
+          "confidence": 5.38,
+          "item_id": 118,
+          "item_name": "Рафидофора Тетрасперма"
+        },
+        {
+          "confidence": 4.94,
+          "item_id": 1,
+          "item_name": "Адениум Пустынная роза"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_03.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 65.8,
+          "item_id": 8,
+          "item_name": " Отёк (водянка) "
+        },
+        {
+          "confidence": 22.18,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 1.13,
+          "item_id": 7,
+          "item_name": " Хлороз "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 99.79,
+          "item_id": 17,
+          "item_name": "Алоказия Мишольца Фрайдек"
+        },
+        {
+          "confidence": 0.15,
+          "item_id": 5,
+          "item_name": "Алоказия Розовый дракон"
+        },
+        {
+          "confidence": 0.05,
+          "item_id": 18,
+          "item_name": "Алоказия Мишольца Фрайдек вариегатная"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_04.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 90.95,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 1.71,
+          "item_id": 8,
+          "item_name": " Отёк (водянка) "
+        },
+        {
+          "confidence": 0.58,
+          "item_id": 18,
+          "item_name": " Ралстония (Бактериальное увядание) "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 99.82,
+          "item_id": 3,
+          "item_name": "Алоказия Полли"
+        },
+        {
+          "confidence": 0.09,
+          "item_id": 17,
+          "item_name": "Алоказия Мишольца Фрайдек"
+        },
+        {
+          "confidence": 0.05,
+          "item_id": 18,
+          "item_name": "Алоказия Мишольца Фрайдек вариегатная"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_05.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 61.9,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 9.58,
+          "item_id": 7,
+          "item_name": " Хлороз "
+        },
+        {
+          "confidence": 8.87,
+          "item_id": 19,
+          "item_name": " Сажистый грибок "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 52.74,
+          "item_id": 67,
+          "item_name": "Фикус Бенджамина Даниэль"
+        },
+        {
+          "confidence": 36.99,
+          "item_id": 80,
+          "item_name": "Фикус микрокарпа Мокламе"
+        },
+        {
+          "confidence": 7.2,
+          "item_id": 82,
+          "item_name": "Фикус Религиоза"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_06.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 91.73,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 0.79,
+          "item_id": 6,
+          "item_name": " Гниль бутонов "
+        },
+        {
+          "confidence": 0.63,
+          "item_id": 9,
+          "item_name": " Мучнистая роса (Эризифовые) "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 85.8,
+          "item_id": 72,
+          "item_name": "Фикус эластика Абиджан"
+        },
+        {
+          "confidence": 5.83,
+          "item_id": 89,
+          "item_name": "Хойя Серый призрак"
+        },
+        {
+          "confidence": 4.85,
+          "item_id": 178,
+          "item_name": "Замиокулькас Равен"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_07.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 87.48,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 2.02,
+          "item_id": 1,
+          "item_name": " Бактериальный рак "
+        },
+        {
+          "confidence": 1.59,
+          "item_id": 6,
+          "item_name": " Гниль бутонов "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 100.0,
+          "item_id": 178,
+          "item_name": "Замиокулькас Равен"
+        },
+        {
+          "confidence": 0.0,
+          "item_id": 176,
+          "item_name": "Замиокулькас Замифолия"
+        },
+        {
+          "confidence": 0.0,
+          "item_id": 177,
+          "item_name": "Замиокулькас Акебоно Вариегатед"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  },
+  "plant_08.jpg": {
+    "identify_disease": {
+      "data": [
+        {
+          "confidence": 87.35,
+          "item_id": 21,
+          "item_name": " Здоровое"
+        },
+        {
+          "confidence": 2.46,
+          "item_id": 5,
+          "item_name": " Серая гниль "
+        },
+        {
+          "confidence": 2.19,
+          "item_id": 6,
+          "item_name": " Гниль бутонов "
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    },
+    "identify_plant": {
+      "data": [
+        {
+          "confidence": 89.34,
+          "item_id": 17,
+          "item_name": "Алоказия Мишольца Фрайдек"
+        },
+        {
+          "confidence": 6.52,
+          "item_id": 140,
+          "item_name": "Филодендрон Ред Эмеральд"
+        },
+        {
+          "confidence": 3.51,
+          "item_id": 11,
+          "item_name": "Алоказия Макрориза"
+        }
+      ],
+      "status": "ok",
+      "total": 3
+    }
+  }
+}

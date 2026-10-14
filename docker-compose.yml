@@ -1,15 +1,16 @@
 services:
 
-  # --- Сервис для вашего основного бэкенда (API) ---
   backend:
     container_name: backend
     build:
       context: ./backend
-      dockerfile: Dockerfile     # Указывает Docker Compose собрать образ для этого сервиса из Dockerfile, расположенного в папке './backend'.
-    restart: unless-stopped         # Контейнер будет автоматически перезапускаться.
-    environment:          # Переменные окружения для вашего бэкенда
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
       BOT_TOKEN: ${BOT_TOKEN}
-      CLASSIFIER_URL: http://classifier:8001/predict # Адрес для обращения к ИИ-модулю 1 (внутри Docker сети)
+      RECOGNITION_MODE: ${RECOGNITION_MODE:-legacy} # переключатель: legacy (старый код) или remote (новый сервис recognition)
+      RECOGNITION_URL: http://recognition:8003
+      CLASSIFIER_URL: http://classifier:8001/predict # Адрес для обращения к ИИ-модулю 1 (Внутри Docker сети)
       # DISEASE_URL: http://disease:8002/predict # Адрес для обращения к ИИ-модулю 2
       # UTILS_URL: http://utils:8003/calculate # Адрес для обращения к другим алгоритмам
       DATABASE_URL: sqlite:////app/data/plantastic_db.db # Путь к БД
@@ -21,6 +22,8 @@ services:
       - "8000:8000"       # "Порт_на_хосте:Порт_в_контейнере". Nginx будет проксировать запросы к порту 8000 на хосте.
     depends_on:           # Указывает зависимость от БД. Бэкенд запустится только после того, как БД будет готова.
       classifier:
+        condition: service_healthy
+      recognition:
         condition: service_healthy
       # - disease
       # - utils
@@ -101,6 +104,31 @@ services:
       retries: 3
       start_period: 60s  # ML-модели дольше загружаются
     #НОВОЕ! - конец
+
+
+  # детектор растения + сорт + заболевание
+  recognition:
+    container_name: recognition
+    build:
+      context: ./recognition
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    volumes:
+      - ./recognition/weights:/app/weights:ro
+
+    networks:
+      - app_network
+
+    environment:
+      LOG_LEVEL: INFO
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
 
 
   # --- Сервис для других Python-алгоритмов ---
